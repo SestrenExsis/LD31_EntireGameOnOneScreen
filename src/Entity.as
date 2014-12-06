@@ -18,9 +18,10 @@ package
 			map = Map;
 			lens = Lens;
 			loadGraphic(imgTiles, true, false, MagnifyingGlass.ZOOM, MagnifyingGlass.ZOOM);
+			frame = 1;
 			
 			if (Y > 0.5 * map.heightInTiles)
-				color = 0x00ffff;
+				color = 0x0088ff;
 			else
 				color = 0xff0000;
 		}
@@ -61,7 +62,26 @@ package
 				posY = y;
 			}
 			else
-				FlxG.camera.buffer.setPixel(map.posX + posX, map.posY + posY, color);
+			{
+				var dx:Number = FlxG.mouse.x - 34 - posX;
+				var dy:Number = FlxG.mouse.y - 34 - posY;
+				var _distance:Number = Math.sqrt(dx * dx + dy * dy);
+				
+				var _offsetX:uint = 0;
+				var _offsetY:uint = 0;
+				if (_distance < 31)
+				{
+					_offsetX = 274 + posX - lens.lensRect.x;
+					_offsetY = 48 + posY - lens.lensRect.y;
+					FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
+				}
+				else if (_distance >= 33)
+				{
+					_offsetX = map.posX + posX;
+					_offsetY = map.posY + posY;
+					FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
+				}
+			}
 		}
 	}
 }

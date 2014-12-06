@@ -4,6 +4,9 @@ package
 		
 	public class GameScreen extends FlxState
 	{
+		[Embed(source="../assets/images/GameScreen.png")] protected var imgGameScreen:Class;
+		
+		protected var background:FlxSprite;
 		protected var worldmap:WorldMap;
 		protected var entities:FlxGroup;
 		protected var lens:MagnifyingGlass;
@@ -17,10 +20,12 @@ package
 		{
 			super.create();
 			
-			FlxG.bgColor = 0xffffffff;
 			FlxG.mouse.hide();
 			
-			worldmap = new WorldMap(24, 24, 128, 128);
+			background = new FlxSprite();
+			background.loadGraphic(imgGameScreen);
+			
+			worldmap = new WorldMap(34, 34, 112, 112);
 			lens = new MagnifyingGlass(worldmap);
 			
 			var _entity:Entity;
@@ -35,6 +40,7 @@ package
 				entities.add(_entity);
 			}
 			
+			add(background);
 			add(worldmap);
 			add(entities);
 			add(lens);

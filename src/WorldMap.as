@@ -36,13 +36,31 @@ package
 		
 		protected function randomColor(X:int, Y:int):uint
 		{
-			var _odd:uint = 0x003300;
-			var _even:uint = 0x006600;
+			var _x:int = Math.floor(X / 4);
+			var _y:int = Math.floor(Y / 4);
+			var _odd:uint = 0x9cc98e;
+			var _even:uint = 0x81ba28;
 			
-			if (((X + Y) % 2) == 0)
+			if (((_x + _y) % 2) == 0)
 				return _even;
 			else
 				return _odd;
+		}
+		
+		protected function getMapTile(X:int, Y:int):void
+		{
+			_flashRect.setTo(0, 0, 8, 8);
+			if (X >= 0 && X < widthInTiles && Y >= 0 && Y < heightInTiles)
+			{
+				var _pixel:uint = tiles.getPixel(X, Y);
+				switch (_pixel)
+				{
+					case 0x9cc98e: _flashRect.x = 16; break;
+					case 0x81ba28: _flashRect.x = 24; break;
+				}
+			}
+			else
+				_flashRect.x = 0;
 		}
 		
 		override public function update():void
@@ -52,50 +70,33 @@ package
 		
 		override public function draw():void
 		{
-			
 			_flashRect.setTo(0, 0, widthInTiles, heightInTiles);
 			_flashPoint.setTo(posX, posY);
 			FlxG.camera.buffer.copyPixels(tiles, _flashRect, _flashPoint, null, null, true);
-		}
-		
-		/*override public function draw():void
-		{
-			var _view:Rectangle = lens.mapRect;
 			
-			var _corner:Boolean = false;
-			var _magnified:Boolean = false;
 			if (lens)
 			{
-				_corner = ((posX == _view.left || posX == _view.right - 1) && (posY == _view.top || posY == _view.bottom - 1));
-				_magnified = _view.contains(posX, posY) && !_corner;
-			}
-			
-			if (_magnified)
-			{
-				var x:Number = posX;
-				var y:Number = posY;
-				
-				posX = lens.lensRect.x + MagnifyingGlass.ZOOM * (x - _view.x);
-				posY = lens.lensRect.y + MagnifyingGlass.ZOOM * (y - _view.y);
-				
-				if(dirty)
-					calcFrame();
-				
-				_flashPoint.x = posX;
-				_flashPoint.y = posY;
-				
-				_flashPointZero.setTo(posX - lens.posX, posY - lens.posY);
-				FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
+				var _view:Rectangle = lens.mapRect;
+				var _magnified:Boolean = false;
+				for (var y:int = _view.top; y < _view.bottom; y++)
+				{
+					for (var x:int = _view.left; x < _view.right; x++)
+					{
+						_magnified = !((posX == _view.left || posX == _view.right - 1) 
+							&& (posY == _view.top || posY == _view.bottom - 1));
+						
+						if (_magnified)
+						{
+							getMapTile(x, y);
+							_flashPoint.x = lens.lensRect.x + MagnifyingGlass.ZOOM * (x - _view.x);
+							_flashPoint.y = lens.lensRect.y + MagnifyingGlass.ZOOM * (y - _view.y);
+							_flashPointZero.setTo(_flashPoint.x - lens.posX, _flashPoint.y - lens.posY);
+							FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
+						}
+					}
+				}
 				_flashPointZero.setTo(0, 0);
-				
-				if(FlxG.visualDebug && !ignoreDrawDebug)
-					drawDebug(FlxG.camera);
-				
-				posX = x;
-				posY = y;
 			}
-			else
-				FlxG.camera.buffer.setPixel(map.posX + posX, map.posY + posY, color);
-		}*/
+		}
 	}
 }
