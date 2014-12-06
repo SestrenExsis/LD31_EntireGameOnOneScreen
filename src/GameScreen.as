@@ -4,7 +4,9 @@ package
 		
 	public class GameScreen extends FlxState
 	{
-		protected var player:MagnifyingGlass;
+		protected var worldmap:WorldMap;
+		protected var entities:FlxGroup;
+		protected var lens:MagnifyingGlass;
 		
 		public function GameScreen()
 		{
@@ -15,11 +17,28 @@ package
 		{
 			super.create();
 			
-			FlxG.bgColor = 0xffff0000;
+			FlxG.bgColor = 0xffffffff;
 			FlxG.mouse.hide();
 			
-			player = new MagnifyingGlass();
-			add(player);
+			worldmap = new WorldMap(64, 64, 128, 128);
+			
+			lens = new MagnifyingGlass();
+			
+			var _entity:Entity;
+			var _x:int;
+			var _y:int;
+			entities = new FlxGroup(500);
+			for (var i:int = 0; i < 500; i++)
+			{
+				_x = Math.floor(worldmap.widthInTiles * FlxG.random());
+				_y = Math.floor(worldmap.heightInTiles * FlxG.random());
+				_entity = new Entity(worldmap, lens, _x, _y);
+				entities.add(_entity);
+			}
+			
+			//add(worldmap);
+			add(entities);
+			add(lens);
 		}
 		
 		override public function update():void
