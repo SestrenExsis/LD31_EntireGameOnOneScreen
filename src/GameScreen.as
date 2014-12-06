@@ -10,6 +10,7 @@ package
 		protected var worldmap:WorldMap;
 		protected var entities:FlxGroup;
 		protected var lens:MagnifyingGlass;
+		protected var actionTimer:FlxTimer;
 		
 		public function GameScreen()
 		{
@@ -44,11 +45,27 @@ package
 			add(worldmap);
 			add(entities);
 			add(lens);
+			
+			actionTimer = new FlxTimer();
+			actionTimer.start(2, 1, updateActions);
+		}
+		
+		public function updateActions(Timer:FlxTimer):void
+		{
+			actionTimer.stop();
+			actionTimer.start(2, 1, updateActions);
+			entities.callAll("updateAction");
+			entities.sort("posY", ASCENDING, false);
 		}
 		
 		override public function update():void
 		{	
 			super.update();
+		}
+		
+		override public function draw():void
+		{	
+			super.draw();
 		}
 	}
 }
