@@ -17,7 +17,7 @@ package
 			
 			map = Map;
 			lens = Lens;
-			loadGraphic(imgTiles, true, false, 16, 16);
+			loadGraphic(imgTiles, true, false, MagnifyingGlass.ZOOM, MagnifyingGlass.ZOOM);
 			
 			if (Y > 0.5 * map.heightInTiles)
 				color = 0x00ffff;
@@ -32,30 +32,36 @@ package
 		
 		override public function draw():void
 		{
-			var _viewRect:Rectangle = lens.mapRect;
-			var _magnified:Boolean = _viewRect.contains(posX, posY) 
-				&& (posX != _viewRect.left || posX != _viewRect.right) && (posY != _viewRect.top || posY != _viewRect.bottom);
+			var _view:Rectangle = lens.mapRect;
+			var _corner:Boolean = ((posX == _view.left || posX == _view.right - 1) && (posY == _view.top || posY == _view.bottom - 1));
+			var _magnified:Boolean = _view.contains(posX, posY) && !_corner;
 			
 			if (_magnified)
 			{
 				var x:Number = posX;
 				var y:Number = posY;
 				
-				posX = lens.lensRect.x + 16 * (x - _viewRect.x);
-				posY = lens.lensRect.y + 16 * (y - _viewRect.y);
+				posX = lens.lensRect.x + MagnifyingGlass.ZOOM * (x - _view.x);
+				posY = lens.lensRect.y + MagnifyingGlass.ZOOM * (y - _view.y);
 				
-				super.draw();
+				if(dirty)
+					calcFrame();
+				
+				_flashPoint.x = posX;
+				_flashPoint.y = posY;
+				
+				_flashPointZero.setTo(posX - lens.posX, posY - lens.posY);
+				FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
+				_flashPointZero.setTo(0, 0);
+				
+				if(FlxG.visualDebug && !ignoreDrawDebug)
+					drawDebug(FlxG.camera);
 				
 				posX = x;
 				posY = y;
 			}
 			else
-			{
-				_flashRect.setTo(posX * 2, posY * 2, 2, 2);
-				var _argb:uint = (255 << 24) | color;
-				FlxG.camera.buffer.fillRect(_flashRect, _argb);
-				_flashRect.setTo(0, 0, 16, 16);
-			}
+				FlxG.camera.buffer.setPixel(map.posX + posX, map.posY + posY, color);
 		}
 	}
 }

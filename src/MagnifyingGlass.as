@@ -1,5 +1,6 @@
 package
 {
+	import flash.display.BitmapData;
 	import flash.geom.Rectangle;
 	
 	import org.flixel.*;
@@ -7,39 +8,47 @@ package
 	public class MagnifyingGlass extends FlxSprite
 	{
 		[Embed(source="../assets/images/MagnifyingGlass.png")] protected var imgMagnifyingGlass:Class;
+		[Embed(source="../assets/images/LensMask.png")] protected var imgLensMask:Class;
+		
+		public static const ZOOM:int = 8;
+		
+		public var map:WorldMap;
 		
 		public var mapRect:Rectangle;
 		public var lensRect:Rectangle;
-		public var zoom:int;
+		public var lensMask:BitmapData;
 		
-		public function MagnifyingGlass()
+		public function MagnifyingGlass(Map:WorldMap = null)
 		{
 			super(0, 0);
 			
 			loadGraphic(imgMagnifyingGlass);
+			lensMask = FlxG.addBitmap(imgLensMask);
 			mapRect = new Rectangle(0, 0, 8, 8);
 			lensRect = new Rectangle(0, 0, 128, 128);
-			zoom = 8;
 			
-			FlxG.watch(mapRect, "x");
-			FlxG.watch(mapRect, "y");
-			FlxG.watch(lensRect, "x");
-			FlxG.watch(lensRect, "y");
+			if (Map)
+			{
+				map = Map;
+				map.lens = this;
+			}
 		}
 		
 		override public function update():void
 		{	
 			super.update();
 			
-			var x:int = Math.floor(0.5 * (FlxG.mouse.x - 67));
-			var y:int = Math.floor(0.5 * (FlxG.mouse.y - 67));
-			posX = 2 * x;
-			posY = 2 * y;
+			posX = FlxG.mouse.x - 34;
+			posY = FlxG.mouse.y - 34;
 			
-			mapRect.x = 0.5 * FlxG.mouse.x - 0.5 * zoom;
-			mapRect.y = 0.5 * FlxG.mouse.y - 0.5 * zoom;
-			lensRect.x = posX + 3;
-			lensRect.y = posY + 3;
+			if (map)
+			{
+				mapRect.x = FlxG.mouse.x - 0.5 * mapRect.width - map.posX;
+				mapRect.y = FlxG.mouse.y - 0.5 * mapRect.height - map.posY;
+			}
+			
+			lensRect.x = posX + 2;
+			lensRect.y = posY + 2;
 		}
 	}
 }

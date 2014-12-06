@@ -8,7 +8,7 @@ package
 	{
 		public function LD31_EntireGameOnOneScreen()
 		{
-			super(640, 360, GameScreen, 1.0, 60, 60, false);
+			super(320, 180, GameScreen, 2.0, 60, 60, false);
 			forceDebugger = true;
 		}
 	}

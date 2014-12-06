@@ -20,9 +20,8 @@ package
 			FlxG.bgColor = 0xffffffff;
 			FlxG.mouse.hide();
 			
-			worldmap = new WorldMap(64, 64, 128, 128);
-			
-			lens = new MagnifyingGlass();
+			worldmap = new WorldMap(24, 24, 128, 128);
+			lens = new MagnifyingGlass(worldmap);
 			
 			var _entity:Entity;
 			var _x:int;
@@ -36,7 +35,7 @@ package
 				entities.add(_entity);
 			}
 			
-			//add(worldmap);
+			add(worldmap);
 			add(entities);
 			add(lens);
 		}
