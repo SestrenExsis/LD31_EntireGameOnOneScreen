@@ -33,6 +33,7 @@ package
 			addAnimation("good_angry", [4, 3, 5, 3, 3, 3, 3, 3], 2, true);
 			
 			_offsetRemaining = new FlxPoint();
+			width = height = 1;
 			
 			if (Y > 0.5 * map.heightInTiles)
 				team = BLUE_TEAM;
@@ -68,8 +69,20 @@ package
 		
 		public function updateAction():void
 		{
+			last.y = posY;
 			posY += team;
 			_offsetRemaining.y -= 8 * team;
+		}
+		
+		public function undoLastMove():void
+		{
+			posY = last.y;
+			_offsetRemaining.y = 0;
+		}
+		
+		public function attack(Target:Entity):Boolean
+		{
+			return false;
 		}
 		
 		override public function update():void

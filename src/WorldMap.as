@@ -29,15 +29,15 @@ package
 			{
 				for (var x:int = 0; x < widthInTiles; x++)
 				{
-					tiles.setPixel(x, y, randomColor(x, y));
+					tiles.setPixel(x, y, assignColor(x, y));
 				}
 			}
 		}
 		
-		protected function randomColor(X:int, Y:int):uint
+		protected function assignColor(X:int, Y:int):uint
 		{
-			var _x:int = Math.floor(X / 4);
-			var _y:int = Math.floor(Y / 4);
+			var _x:int = Math.floor(X / 8);
+			var _y:int = Math.floor(Y / 8);
 			var _odd:uint = 0x9cc98e;
 			var _even:uint = 0x81ba28;
 			
