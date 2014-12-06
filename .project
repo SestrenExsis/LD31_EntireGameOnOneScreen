@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>LD31_EntireGameOnOneScreen</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>com.adobe.flexbuilder.project.flexbuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>com.adobe.flexbuilder.project.actionscriptnature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>[source path] flixel-v2.56</name>
+			<type>2</type>
+			<location>C:/Users/Joshua/Desktop/Dropbox/Libraries/flixel-v2.56</location>
+		</link>
+	</linkedResources>
+</projectDescription>

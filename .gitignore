@@ -1,6 +1,7 @@
 # Build and Release Folders
 bin/
 bin-debug/
+bin-compo/
 bin-release/
 
 # Other files and folders
