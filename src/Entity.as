@@ -44,7 +44,7 @@ package
 			addAnimation("bad_hurt", [24, 25, 26, 1], ANIMATION_SPEED, false);
 			addAnimation("bad_die", [24, 25, 27, 28, 29, 0, 29, 0, 29, 0], ANIMATION_SPEED, false);
 			addAnimation("bad_yell", [40, 41, 40, 41, 1], 0.5 * ANIMATION_SPEED, false);
-			addAnimation("bad_dance", [44, 43, 42, 43, 44, 43, 42, 1], ANIMATION_SPEED, false);
+			addAnimation("bad_dance", [44, 43, 42, 43, 44, 43, 42, 43, 44, 43, 1], ANIMATION_SPEED, false);
 			addAnimation("bad_jump", [45, 46, 47, 48, 49, 1], ANIMATION_SPEED, false);
 			
 			addAnimation("good_idle", [11]);
@@ -56,7 +56,7 @@ package
 			addAnimation("good_hurt", [34, 35, 36, 11], ANIMATION_SPEED, false);
 			addAnimation("good_die", [34, 35, 37, 38, 39, 0, 39, 0, 39, 0], ANIMATION_SPEED, false);
 			addAnimation("good_yell", [50, 51, 50, 51, 11], 0.5 * ANIMATION_SPEED, false);
-			addAnimation("good_dance", [54, 53, 52, 53, 54, 53, 52, 11], ANIMATION_SPEED, false);
+			addAnimation("good_dance", [54, 53, 52, 53, 54, 53, 52, 53, 54, 53, 11], ANIMATION_SPEED, false);
 			addAnimation("good_jump", [55, 56, 57, 58, 59, 11], ANIMATION_SPEED, false);
 			
 			timer = new FlxTimer();
@@ -99,6 +99,7 @@ package
 			last.y = posY;
 			posY += team;
 			_offsetRemaining.y -= 8 * team;
+			ScreenState.addSoundToQueue(ScreenState.sfxMove, distanceFromCenter());
 		}
 		
 		public function taunt():void
@@ -110,7 +111,6 @@ package
 				case 1: play(((team == RED_TEAM) ? "bad_dance" : "good_dance")); break;
 				case 2: play(((team == RED_TEAM) ? "bad_jump" : "good_jump")); break;
 			}
-			
 		}
 		
 		public function updateAction():void
@@ -123,13 +123,15 @@ package
 		
 		public function undoLastMove():void
 		{
-			play(((team == RED_TEAM) ? "bad_idle" : "good_idle"));
+			if (_curAnim.name == "bad_move" || _curAnim.name == "good_move")
+				play(((team == RED_TEAM) ? "bad_idle" : "good_idle"));
 			posY = last.y;
 			_offsetRemaining.y = 0;
 		}
 		
 		public function attack(Target:Entity):Boolean
 		{
+			last.y = posY;
 			var _hit:Boolean = FlxG.random() < 0.5;
 			if (_hit)
 			{
@@ -155,9 +157,13 @@ package
 				timer.stop();
 				timer.start(10 / ANIMATION_SPEED, 1, onTimerKill);
 				alive = false;
+				ScreenState.addSoundToQueue(ScreenState.sfxDie, distanceFromCenter());
 			}
 			else
+			{
 				play(((team == RED_TEAM) ? "bad_hurt" : "good_hurt"));
+				ScreenState.addSoundToQueue(ScreenState.sfxHit, distanceFromCenter());
+			}
 		}
 		
 		public function smite():void
@@ -166,6 +172,7 @@ package
 			
 			play((team == RED_TEAM) ? "bad_lightning" : "good_lightning", true);
 			timer.start(5 / (0.5 * ANIMATION_SPEED), 1, onTimerKill);
+			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter());
 		}
 		
 		public function onTimerKill(Timer:FlxTimer):void
@@ -218,7 +225,6 @@ package
 				
 				_flashPointZero.setTo(_flashPoint.x - lens.posX, _flashPoint.y - lens.posY);
 				FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
-				//FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, null, null, true);
 				_flashPointZero.setTo(0, 0);
 				
 				if(FlxG.visualDebug && !ignoreDrawDebug)
@@ -229,9 +235,7 @@ package
 			}
 			else if (alive)
 			{
-				var dx:Number = FlxG.mouse.x - 34 - posX;
-				var dy:Number = FlxG.mouse.y - 34 - posY;
-				var _distance:Number =  Math.sqrt(dx * dx + dy * dy);
+				var _distance:Number = distanceFromCenter();
 				
 				var _offsetX:uint = 0;
 				var _offsetY:uint = 0;

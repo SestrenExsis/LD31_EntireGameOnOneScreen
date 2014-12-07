@@ -2,7 +2,7 @@ package
 {
 	import org.flixel.*;
 		
-	public class GameScreen extends FlxState
+	public class GameScreen extends ScreenState
 	{
 		[Embed(source="../assets/images/GameScreen.png")] protected var imgGameScreen:Class;
 		
@@ -121,12 +121,12 @@ package
 				blueTeam.callAll("updateAction");
 			}
 			
-			FlxG.overlap(redTeam, blueTeam, testOverlap, overlapObjects);
+			FlxG.overlap(redTeam, blueTeam, overlapObjects, testOverlap);
 			
 			if (currentTeam == Entity.RED_TEAM)
-				FlxG.overlap(redTeam, redTeam, testOverlap, overlapObjects);
+				FlxG.overlap(redTeam, redTeam, overlapObjects, testOverlap);
 			else if (currentTeam == Entity.BLUE_TEAM)
-				FlxG.overlap(blueTeam, blueTeam, testOverlap, overlapObjects);
+				FlxG.overlap(blueTeam, blueTeam, overlapObjects, testOverlap);
 			
 			currentTeam = (currentTeam == Entity.RED_TEAM) ? Entity.BLUE_TEAM : Entity.RED_TEAM;
 		}
@@ -147,21 +147,34 @@ package
 			if (Entity1.posX != Entity2.posX || Entity1.posY != Entity2.posY)
 				return;
 			
+			if (Entity1.magnified || Entity2.magnified)
+				FlxG.log(Entity1.posY + ": " + Entity1.team + " " + Entity1.last.y + ", " + Entity2.team + " " + Entity2.last.y);
+			
 			if (Entity1.team == currentTeam)
 			{
 				Entity1.undoLastMove();
 				if (Entity2.team != currentTeam)
 					Entity1.attack(Entity2);
-				else
-					Entity1.taunt();
+				else 
+				{
+					if (Entity1.last.y < Entity2.last.y && Entity1.team == Entity.RED_TEAM)
+						Entity1.taunt();
+					else if (Entity1.last.y > Entity2.last.y && Entity1.team == Entity.BLUE_TEAM)
+						Entity1.taunt();
+				}
 			}
 			if (Entity2.team == currentTeam)
 			{
 				Entity2.undoLastMove();
 				if (Entity1.team != currentTeam)
 					Entity2.attack(Entity1);
-				else
-					Entity2.taunt();
+				else 
+				{
+					if (Entity2.last.y < Entity1.last.y && Entity2.team == Entity.RED_TEAM)
+						Entity2.taunt();
+					else if (Entity2.last.y > Entity1.last.y && Entity2.team == Entity.BLUE_TEAM)
+						Entity2.taunt();
+				}
 			}
 		}
 		
