@@ -6,6 +6,9 @@ package
 	{
 		[Embed(source="../assets/images/GameScreen.png")] protected var imgGameScreen:Class;
 		
+		public static const TURN_DURATION:Number = 1.0;
+		public static const MAX_ENEMIES_PER_LANE:uint = 10;
+		
 		protected var background:FlxSprite;
 		protected var worldmap:WorldMap;
 		protected var redTeam:FlxGroup;
@@ -13,6 +16,7 @@ package
 		protected var lens:MagnifyingGlass;
 		protected var actionTimer:FlxTimer;
 		protected var currentTeam:int = Entity.RED_TEAM;
+		protected var lanes:Vector.<Vector.<Entity>>;
 		
 		public function GameScreen()
 		{
@@ -32,21 +36,30 @@ package
 			lens = new MagnifyingGlass(worldmap);
 			
 			var _entity:Entity;
-			var _x:int;
-			var _y:int;
-			redTeam = new FlxGroup(250);
-			blueTeam = new FlxGroup(250);
-			for (var i:int = 0; i < 250; i++)
+			redTeam = new FlxGroup(1000);
+			blueTeam = new FlxGroup(1000);
+			
+			//shuffle up the lanes
+			var x:int;
+			var lane:Vector.<Entity>;
+			lanes = new Vector.<Vector.<Entity>>(worldmap.widthInTiles);
+			var _probability:Number = 0.7;
+			var _redCount:uint;
+			var _success:Boolean;
+			for (x = 0; x < worldmap.widthInTiles; x++)
 			{
-				_x = Math.floor(worldmap.widthInTiles * FlxG.random());
-				_y = Math.floor((0.5 * worldmap.heightInTiles - 2) * FlxG.random());
-				_entity = new Entity(worldmap, lens, _x, _y);
-				redTeam.add(_entity);
+				_redCount = 0;
+				_success = true;
+				do {
+					if (FlxG.random() < _probability)
+						_redCount++;
+					else
+						_success = false;
+				} while (_redCount < MAX_ENEMIES_PER_LANE && _success)
 				
-				_x = Math.floor(worldmap.widthInTiles * FlxG.random());
-				_y = 0.5 * worldmap.heightInTiles + 2 + Math.floor((0.5 * worldmap.heightInTiles - 2) * FlxG.random());
-				_entity = new Entity(worldmap, lens, _x, _y);
-				blueTeam.add(_entity);
+				lane = new Vector.<Entity>();
+				fillLane(lane, x, _redCount);
+				lanes[x] = lane;
 			}
 			
 			add(background);
@@ -56,17 +69,50 @@ package
 			add(lens);
 			
 			actionTimer = new FlxTimer();
-			actionTimer.start(2, 1, updateActions);
+			actionTimer.start(TURN_DURATION, 1, updateActions);
+		}
+		
+		protected function fillLane(Lane:Vector.<Entity>, LaneIndex:uint, RedCount:uint = 4, BluePercent:Number = 0.8):uint
+		{
+			var _blueCount:uint = 0;
+			for (var r:int = 0; r < RedCount; r++)
+			{
+				if (FlxG.random() < BluePercent)
+					_blueCount++;
+			}
+			
+			var _maxDistance:uint = Math.ceil(worldmap.heightInTiles / (RedCount + _blueCount + 2));
+			var _y:int = Math.max(Math.ceil(_maxDistance * FlxG.random()), Math.ceil(_maxDistance * FlxG.random()));
+			var _entity:Entity;
+			var _team:int;
+			for (var i:int = 0; i < RedCount + _blueCount; i++)
+			{
+				_y += Math.max(Math.ceil(_maxDistance * FlxG.random()), Math.ceil(_maxDistance * FlxG.random()));
+				if (i < RedCount)
+					_team = Entity.RED_TEAM;
+				else
+					_team = Entity.BLUE_TEAM;
+				_entity = new Entity(worldmap, lens, LaneIndex, _y, _team);
+				Lane.push(_entity);
+				
+				if (_team == Entity.RED_TEAM)
+					redTeam.add(_entity);
+				else
+					blueTeam.add(_entity);
+			}
+			
+			return RedCount + _blueCount;
 		}
 		
 		public function updateActions(Timer:FlxTimer):void
 		{
 			actionTimer.stop();
-			actionTimer.start(1, 1, updateActions);
+			actionTimer.start(TURN_DURATION, 1, updateActions);
 			
+			var i:int;
 			if (currentTeam == Entity.RED_TEAM)
 			{
-				redTeam.sort("posY", ASCENDING, false);
+				redTeam.sort("posY", DESCENDING, false);
 				redTeam.callAll("updateAction");
 			}
 			else if (currentTeam == Entity.BLUE_TEAM)
@@ -75,14 +121,19 @@ package
 				blueTeam.callAll("updateAction");
 			}
 			
-			FlxG.overlap(redTeam, blueTeam, null, overlapObjects);
+			FlxG.overlap(redTeam, blueTeam, testOverlap, overlapObjects);
 			
 			if (currentTeam == Entity.RED_TEAM)
-				FlxG.overlap(redTeam, redTeam, null, overlapObjects);
+				FlxG.overlap(redTeam, redTeam, testOverlap, overlapObjects);
 			else if (currentTeam == Entity.BLUE_TEAM)
-				FlxG.overlap(blueTeam, blueTeam, null, overlapObjects);
+				FlxG.overlap(blueTeam, blueTeam, testOverlap, overlapObjects);
 			
 			currentTeam = (currentTeam == Entity.RED_TEAM) ? Entity.BLUE_TEAM : Entity.RED_TEAM;
+		}
+		
+		public function testOverlap(Object1:FlxObject, Object2:FlxObject):Boolean
+		{
+			return (Object1.alive && Object2.alive && Object1.exists && Object2.exists);
 		}
 		
 		public function overlapObjects(Object1:FlxObject, Object2:FlxObject):void
@@ -101,19 +152,60 @@ package
 				Entity1.undoLastMove();
 				if (Entity2.team != currentTeam)
 					Entity1.attack(Entity2);
+				else
+					Entity1.taunt();
 			}
 			if (Entity2.team == currentTeam)
 			{
 				Entity2.undoLastMove();
 				if (Entity1.team != currentTeam)
 					Entity2.attack(Entity1);
+				else
+					Entity2.taunt();
+			}
+		}
+		
+		public function randomEntity(Reds:Boolean = true, Blues:Boolean = true):Entity
+		{
+			var i:int;
+			var _lane:Vector.<Entity>;
+			var _entity:Entity;
+			var _array:Array = new Array();
+			var _left:uint = Math.max(lens.mapRect.left, 0);
+			var _right:uint = Math.min(lens.mapRect.right, worldmap.widthInTiles - 1);
+			var _distance:Number;
+			for (i = _left; i < _right; i++)
+			{
+				_lane = lanes[i];
+				for (var j:int = 0; j < _lane.length; j++)
+				{
+					_entity = _lane[j];
+					_distance = _entity.distanceFromCenter();
+					if (_distance < 31 && _entity.magnified && _entity.alive && _entity.exists)
+					{
+						if ((Reds && _entity.team == Entity.RED_TEAM) || (Blues && _entity.team == Entity.BLUE_TEAM))
+							_array.push(_entity);
+					}
+				}
 			}
 			
+			if (_array.length == 0)
+				return null;
+			
+			var _seed:uint = Math.floor(_array.length * FlxG.random());
+			return _array[_seed];
 		}
 		
 		override public function update():void
 		{	
 			super.update();
+			
+			if (FlxG.mouse.justPressed())
+			{
+				var _randomEntity:Entity = randomEntity();
+				if (_randomEntity)
+					_randomEntity.smite();
+			}
 		}
 		
 		override public function draw():void
