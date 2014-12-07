@@ -32,7 +32,7 @@ package
 			background = new FlxSprite();
 			background.loadGraphic(imgGameScreen);
 			
-			worldmap = new WorldMap(34, 34, 112, 112);
+			worldmap = new WorldMap();
 			lens = new MagnifyingGlass(worldmap);
 			
 			var _entity:Entity;
@@ -46,7 +46,7 @@ package
 			var _probability:Number = 0.7;
 			var _redCount:uint;
 			var _success:Boolean;
-			for (x = 0; x < worldmap.widthInTiles; x++)
+			for (x = worldmap.worldRect.left; x < worldmap.worldRect.right; x++)
 			{
 				_redCount = 0;
 				_success = true;
@@ -81,8 +81,9 @@ package
 					_blueCount++;
 			}
 			
-			var _maxDistance:uint = Math.ceil(worldmap.heightInTiles / (RedCount + _blueCount + 2));
-			var _y:int = Math.max(Math.ceil(_maxDistance * FlxG.random()), Math.ceil(_maxDistance * FlxG.random()));
+			var _maxDistance:uint = Math.ceil(worldmap.worldRect.height / (RedCount + _blueCount + 2));
+			var _y:int = worldmap.worldRect.top
+				+ Math.max(Math.ceil(_maxDistance * FlxG.random()), Math.ceil(_maxDistance * FlxG.random()));
 			var _entity:Entity;
 			var _team:int;
 			for (var i:int = 0; i < RedCount + _blueCount; i++)
@@ -146,9 +147,6 @@ package
 		{
 			if (Entity1.posX != Entity2.posX || Entity1.posY != Entity2.posY)
 				return;
-			
-			if (Entity1.magnified || Entity2.magnified)
-				FlxG.log(Entity1.posY + ": " + Entity1.team + " " + Entity1.last.y + ", " + Entity2.team + " " + Entity2.last.y);
 			
 			if (Entity1.team == currentTeam)
 			{
@@ -215,9 +213,33 @@ package
 			
 			if (FlxG.mouse.justPressed())
 			{
-				var _randomEntity:Entity = randomEntity();
-				if (_randomEntity)
-					_randomEntity.smite();
+				var _randomEntity:Entity
+				if (lens.frame == MagnifyingGlass.SPELL_BLESS)
+				{
+					if (lens.blessLevel > 0)
+					{
+						_randomEntity = randomEntity(false, true);
+						if (_randomEntity)
+						{
+							_randomEntity.bless();
+							lens.blessCharge -= MagnifyingGlass.BLESS_COOLDOWN;
+							lens.blessLevel--;
+						}
+					}
+				}
+				else if (lens.frame == MagnifyingGlass.SPELL_SMITE)
+				{
+					if (lens.smiteLevel > 0)
+					{
+						_randomEntity = randomEntity(true, false);
+						if (_randomEntity)
+						{
+							_randomEntity.smite();
+							lens.smiteCharge -= MagnifyingGlass.SMITE_COOLDOWN;
+							lens.smiteLevel--;
+						}
+					}
+				}
 			}
 		}
 		

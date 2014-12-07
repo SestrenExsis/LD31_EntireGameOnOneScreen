@@ -13,6 +13,10 @@ package
 		public static const FRAME_OFFSET:Number = 24;
 		public static const ANIMATION_SPEED:Number = 8;
 		
+		public static const BLUE:uint = 0x0088ff;
+		public static const BLESSED:uint = 0xffffff;
+		public static const RED:uint = 0xff0000;
+		
 		public static const BLUE_TEAM:int = -1;
 		public static const NEUTRAL_TEAM:int = 0;
 		public static const RED_TEAM:int = 1;
@@ -20,10 +24,12 @@ package
 		public var map:WorldMap;
 		public var lens:MagnifyingGlass;
 		public var magnified:Boolean = false;
+		public var blessed:Boolean = false;
 		
 		protected var _team:int = 0;
 		protected var _offsetRemaining:FlxPoint;
 		protected var timer:FlxTimer;
+		protected var blessTimer:FlxTimer;
 		
 		public function Entity(Map:WorldMap, Lens:MagnifyingGlass, X:int, Y:int, Team:int)
 		{
@@ -61,10 +67,12 @@ package
 			
 			timer = new FlxTimer();
 			timer.start(0.01);
+			blessTimer = new FlxTimer();
+			blessTimer.start(0.01);
 			
 			_offsetRemaining = new FlxPoint();
 			width = height = 1;
-			health = 2;
+			health = 3;
 			
 			team = Team;
 		}
@@ -83,12 +91,12 @@ package
 			
 			if (_team == BLUE_TEAM)
 			{
-				color = 0x0088ff;
+				color = BLUE;
 				play("good_idle", true);
 			}
 			else if (_team == RED_TEAM)
 			{
-				color = 0xff0000;
+				color = RED;
 				play("bad_idle", true);
 			}
 		}
@@ -132,7 +140,8 @@ package
 		public function attack(Target:Entity):Boolean
 		{
 			last.y = posY;
-			var _hit:Boolean = FlxG.random() < 0.5;
+			var _chanceToHit:Number = (blessed) ? 0.75 : 0.5;
+			var _hit:Boolean = FlxG.random() < _chanceToHit;
 			if (_hit)
 			{
 				play(((team == RED_TEAM) ? "bad_attack_hit" : "good_attack_hit"));
@@ -143,7 +152,6 @@ package
 				play(((team == RED_TEAM) ? "bad_attack_miss" : "good_attack_miss"));
 				Target.play(((Target.team == RED_TEAM) ? "bad_dodge" : "good_dodge"));
 			}
-			
 			return _hit;
 		}
 		
@@ -164,6 +172,8 @@ package
 				play(((team == RED_TEAM) ? "bad_hurt" : "good_hurt"));
 				ScreenState.addSoundToQueue(ScreenState.sfxHit, distanceFromCenter());
 			}
+			
+			blessed = false;
 		}
 		
 		public function smite():void
@@ -175,6 +185,28 @@ package
 			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter());
 		}
 		
+		public function bless():void
+		{
+			color = BLESSED;
+			blessed = true;
+			health = 3;
+			timer.start(0.25, 1, onTimerBless);
+			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter());
+		}
+		
+		public function onTimerBless(Timer:FlxTimer):void
+		{
+			blessTimer.stop();
+			if (!blessed && color != BLESSED)
+				return;
+			
+			blessTimer.start(0.25, 1, onTimerBless);
+			if (color == BLESSED)
+				color = (team == RED_TEAM) ? RED : BLUE;
+			else
+				color = BLESSED;
+		}
+		
 		public function onTimerKill(Timer:FlxTimer):void
 		{
 			timer.stop();
@@ -183,8 +215,8 @@ package
 		
 		public function distanceFromCenter():Number
 		{
-			var dx:Number = FlxG.mouse.x - 34 - posX;
-			var dy:Number = FlxG.mouse.y - 34 - posY;
+			var dx:Number = FlxG.mouse.x - posX;
+			var dy:Number = FlxG.mouse.y - posY;
 			return Math.sqrt(dx * dx + dy * dy);
 		}
 		
@@ -241,8 +273,8 @@ package
 				var _offsetY:uint = 0;
 				if (_distance < 31)
 				{
-					_offsetX = 274 + posX - lens.lensRect.x;
-					_offsetY = 48 + posY - lens.lensRect.y;
+					_offsetX = map.radarPos.x + posX - lens.lensRect.x;
+					_offsetY = map.radarPos.y + posY - lens.lensRect.y;
 					FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
 				}
 				else if (_distance >= 33)

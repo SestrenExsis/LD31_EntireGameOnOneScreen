@@ -8,43 +8,36 @@ package
 	public class WorldMap extends FlxSprite
 	{
 		[Embed(source="../assets/images/Tiles.png")] protected var imgTiles:Class;
+		[Embed(source="../assets/images/WorldMap.png")] protected var imgMap:Class;
+		
+		public static const COLOR_BACKGROUND:uint = 0x105c68;
+		public static const COLOR_LIGHT:uint = 0x9cc98e;
+		public static const COLOR_DARK:uint = 0x81ba28;
+		public static const COLOR_EDGE_LIGHT:uint = 0x999999;
+		public static const COLOR_EDGE_DARK:uint = 0x808080;
+		public static const COLOR_RADAR_LIGHT:uint = 0xfeffff;
+		public static const COLOR_RADAR_DARK:uint = 0x00262d;
 		
 		public var lens:MagnifyingGlass;
 		public var widthInTiles:uint;
 		public var heightInTiles:uint;
 		public var tiles:BitmapData;
+		public var worldRect:FlxRect;
+		public var instructionPos:FlxPoint;
+		public var radarPos:FlxPoint;
 		
-		public function WorldMap(X:Number, Y:Number, WidthInTiles:uint, HeightInTiles:uint)
+		public function WorldMap()
 		{
-			super(X, Y);
+			super(0, 0);
 			
 			loadGraphic(imgTiles);
 			
-			widthInTiles = WidthInTiles;
-			heightInTiles = HeightInTiles;
-			
-			tiles = FlxG.createBitmap(widthInTiles, heightInTiles, 0xffff0000);
-			
-			for (var y:int = 0; y < heightInTiles; y++)
-			{
-				for (var x:int = 0; x < widthInTiles; x++)
-				{
-					tiles.setPixel(x, y, assignColor(x, y));
-				}
-			}
-		}
-		
-		protected function assignColor(X:int, Y:int):uint
-		{
-			var _x:int = Math.floor(X / 8);
-			var _y:int = Math.floor(Y / 8);
-			var _odd:uint = 0x9cc98e;
-			var _even:uint = 0x81ba28;
-			
-			if (((_x + _y) % 2) == 0)
-				return _even;
-			else
-				return _odd;
+			tiles = FlxG.addBitmap(imgMap);
+			widthInTiles = tiles.width;
+			heightInTiles = tiles.height;
+			worldRect = new FlxRect(64, 64, 112, 112);
+			instructionPos = new FlxPoint(48, 64);
+			radarPos = new FlxPoint(174, 0);
 		}
 		
 		protected function getMapTile(X:int, Y:int):void
@@ -55,12 +48,24 @@ package
 				var _pixel:uint = tiles.getPixel(X, Y);
 				switch (_pixel)
 				{
-					case 0x9cc98e: _flashRect.x = 16; break;
-					case 0x81ba28: _flashRect.x = 24; break;
+					case COLOR_BACKGROUND: _flashRect.x = 0; break;
+					case COLOR_LIGHT: _flashRect.x = 8; break;
+					case COLOR_DARK: _flashRect.x = 16; break;
+					case COLOR_EDGE_LIGHT: _flashRect.x = 24; break;
+					case COLOR_EDGE_DARK: _flashRect.x = 32; break;
+					case COLOR_RADAR_LIGHT: _flashRect.x = 40; break;
+					case COLOR_RADAR_DARK: _flashRect.x = 48; break;
+					default: getInstructionTile(X, Y); break;
 				}
 			}
 			else
 				_flashRect.x = 0;
+		}
+		
+		protected function getInstructionTile(X:int, Y:int):void
+		{
+			_flashRect.x = 8 * (X - instructionPos.x);
+			_flashRect.y = 8 + 8 * (Y - instructionPos.y);
 		}
 		
 		override public function update():void
