@@ -15,12 +15,12 @@ package
 		public static const SPELL_BLESS:uint = 0;
 		public static const SPELL_SMITE:uint = 1;
 		
-		public static const BLESS_COOLDOWN:Number = 4;
-		public static const SMITE_COOLDOWN:Number = 4;
+		public static const BLESS_COOLDOWN:Number = 1.5;
+		public static const SMITE_COOLDOWN:Number = 1.5;
 		
-		public var blessLevel:uint = 0;
+		public var blessLevel:Number = 0;
 		public var blessCharge:Number = 0;
-		public var smiteLevel:uint = 0;
+		public var smiteLevel:Number = 0;
 		public var smiteCharge:Number = 0;
 		
 		public var map:WorldMap;
@@ -30,6 +30,9 @@ package
 		
 		public var blessInfo:FlxText;
 		public var smiteInfo:FlxText;
+		
+		public var fillHeightA:Number;
+		public var fillHeightB:Number;
 		
 		public function MagnifyingGlass(Map:WorldMap = null)
 		{
@@ -54,13 +57,6 @@ package
 		override public function preUpdate():void
 		{
 			super.preUpdate();
-			
-			blessCharge += FlxG.elapsed * Math.max(0, (1 - 0.1 * blessLevel));
-			if (blessCharge > BLESS_COOLDOWN * blessLevel)
-				blessLevel++;
-			smiteCharge += FlxG.elapsed * Math.max(0, (1 - 0.1 * smiteLevel))
-			if (smiteCharge > SMITE_COOLDOWN * smiteLevel)
-				smiteLevel++;
 			
 			if (FlxG.keys.justPressed("SPACE"))
 				frame = (frame == SPELL_BLESS) ? SPELL_SMITE : SPELL_BLESS;
@@ -87,15 +83,25 @@ package
 		{
 			super.draw();
 			
-			blessInfo.posX = 86 + posX;
+			blessInfo.posX = 89 + posX;
 			blessInfo.posY = 46 + posY;
 			blessInfo.text = blessLevel.toString();
 			blessInfo.draw();
 			
-			smiteInfo.posX = 86 + posX;
+			fillHeightA = Math.round(16 * (blessCharge / (BLESS_COOLDOWN - 0.1 * FlxG.level)));
+			_flashRect.setTo(posX + 87, posY + 46 + 16 - fillHeightA, 1, fillHeightA);
+			FlxG.camera.buffer.fillRect(_flashRect, 0xffffffff);
+			
+			smiteInfo.posX = 89 + posX;
 			smiteInfo.posY = 64 + posY;
 			smiteInfo.text = smiteLevel.toString();
 			smiteInfo.draw();
+			
+			fillHeightB = Math.round(16 * (smiteCharge / (SMITE_COOLDOWN - 0.1 * FlxG.level)));
+			_flashRect.setTo(posX + 87, posY + 64 + 16 - fillHeightB, 1, fillHeightB);
+			FlxG.camera.buffer.fillRect(_flashRect, 0xffffffff);
+			
+			_flashRect.setTo(0, 0, frameWidth, frameHeight);
 		}
 	}
 }

@@ -49,17 +49,17 @@ package
 		
 		public static function addSoundToQueue(SoundArray:Array, Distance:Number):void
 		{
-			if (Distance > 64)
+			if (Distance > 16)
 				return;
 			
 			var _volume:Number = 0.0;
-			if (Distance > 32)
+			if (Distance > 8)
 			{
 				if (FlxG.random() < 0.1)
 					_volume = 0.05;
 			}
 			else
-				_volume = 1.0 - 0.95 * ((Distance * Distance) / (32 * 32));
+				_volume = 1.0 - 0.95 * ((Distance * Distance) / (8 * 8));
 			
 			var _seed:Number = Math.floor(SoundArray.length * Math.random());
 			var _sound:Object = {sfx: SoundArray[_seed], volume: _volume};

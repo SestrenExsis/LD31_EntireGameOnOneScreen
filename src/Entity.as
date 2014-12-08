@@ -13,18 +13,24 @@ package
 		public static const FRAME_OFFSET:Number = 24;
 		public static const ANIMATION_SPEED:Number = 8;
 		
-		public static const BLUE:uint = 0x0088ff;
-		public static const BLESSED:uint = 0xffffff;
+		public static const BLUE:uint = 0x0066ff;
+		public static const BLUE_HURT:uint = 0x0000cc;
 		public static const RED:uint = 0xff0000;
+		public static const RED_HURT:uint = 0xaa0000;
+		public static const BLESSED:uint = 0xffffff;
 		
 		public static const BLUE_TEAM:int = -1;
 		public static const NEUTRAL_TEAM:int = 0;
 		public static const RED_TEAM:int = 1;
 		
+		public static var blueCount:uint = 0;
+		public static var redCount:uint = 0;
+		
 		public var map:WorldMap;
 		public var lens:MagnifyingGlass;
 		public var magnified:Boolean = false;
 		public var blessed:Boolean = false;
+		public var distanceFromCenter:Number = 0;
 		
 		protected var _team:int = 0;
 		protected var _offsetRemaining:FlxPoint;
@@ -75,6 +81,12 @@ package
 			health = 3;
 			
 			team = Team;
+			distanceFromCenter = getDistanceFromCenter();
+			
+			if (team == RED_TEAM)
+				Entity.redCount++;
+			else if (team == BLUE_TEAM)
+				Entity.blueCount++;
 		}
 		
 		public function get team():int
@@ -101,15 +113,6 @@ package
 			}
 		}
 		
-		public function moveForward():void
-		{
-			play(((team == RED_TEAM) ? "bad_move" : "good_move"));
-			last.y = posY;
-			posY += team;
-			_offsetRemaining.y -= 8 * team;
-			ScreenState.addSoundToQueue(ScreenState.sfxMove, distanceFromCenter());
-		}
-		
 		public function taunt():void
 		{
 			var _seed:Number = Math.floor(12 * FlxG.random());
@@ -127,6 +130,21 @@ package
 				return;
 			
 			moveForward()
+		}
+		
+		public function moveForward():void
+		{
+			if (team == RED_TEAM && posY == map.worldRect.bottom - 1)
+				GameScreen.LOSS_TRIGGERED = true;
+			if (team == BLUE_TEAM && posY == map.worldRect.top)
+				return;
+			
+			play(((team == RED_TEAM) ? "bad_move" : "good_move"));
+			last.y = posY;
+			posY += team;
+			_offsetRemaining.y -= 8 * team;
+			
+			ScreenState.addSoundToQueue(ScreenState.sfxMove, distanceFromCenter);
 		}
 		
 		public function undoLastMove():void
@@ -161,16 +179,22 @@ package
 			
 			if(health <= 0)
 			{
+				if (team == RED_TEAM)
+					Entity.redCount--;
+				else if (team == BLUE_TEAM)
+					Entity.blueCount--;
+				
 				play(((team == RED_TEAM) ? "bad_die" : "good_die"));
 				timer.stop();
 				timer.start(10 / ANIMATION_SPEED, 1, onTimerKill);
 				alive = false;
-				ScreenState.addSoundToQueue(ScreenState.sfxDie, distanceFromCenter());
+				ScreenState.addSoundToQueue(ScreenState.sfxDie, distanceFromCenter);
 			}
 			else
 			{
+				color = (team == RED_TEAM) ? RED_HURT : BLUE_HURT;
 				play(((team == RED_TEAM) ? "bad_hurt" : "good_hurt"));
-				ScreenState.addSoundToQueue(ScreenState.sfxHit, distanceFromCenter());
+				ScreenState.addSoundToQueue(ScreenState.sfxHit, distanceFromCenter);
 			}
 			
 			blessed = false;
@@ -180,9 +204,14 @@ package
 		{
 			alive = false;
 			
+			if (team == RED_TEAM)
+				Entity.redCount--;
+			else if (team == BLUE_TEAM)
+				Entity.blueCount--;
+			
 			play((team == RED_TEAM) ? "bad_lightning" : "good_lightning", true);
 			timer.start(5 / (0.5 * ANIMATION_SPEED), 1, onTimerKill);
-			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter());
+			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter);
 		}
 		
 		public function bless():void
@@ -191,7 +220,7 @@ package
 			blessed = true;
 			health = 3;
 			timer.start(0.25, 1, onTimerBless);
-			ScreenState.addSoundToQueue(ScreenState.sfxSmite, distanceFromCenter());
+			ScreenState.addSoundToQueue(ScreenState.sfxSmite, getDistanceFromCenter());
 		}
 		
 		public function onTimerBless(Timer:FlxTimer):void
@@ -213,7 +242,7 @@ package
 			kill();
 		}
 		
-		public function distanceFromCenter():Number
+		public function getDistanceFromCenter():Number
 		{
 			var dx:Number = FlxG.mouse.x - posX;
 			var dy:Number = FlxG.mouse.y - posY;
@@ -231,6 +260,8 @@ package
 				_offsetRemaining.x += (_offsetRemaining.x < 0) ? 1 : -1;
 			if (_offsetRemaining.y != 0)
 				_offsetRemaining.y += (_offsetRemaining.y < 0) ? 1 : -1;
+			
+			distanceFromCenter = getDistanceFromCenter();
 		}
 		
 		override public function draw():void
@@ -241,6 +272,14 @@ package
 			var _corner:Boolean = ((x == _view.left || x == _view.right - 1) && (y == _view.top || y == _view.bottom - 1));
 			magnified = !_corner && _view.left <= x && _view.right >= x && _view.top - 1 < y && _view.bottom >= y;
 			
+			var _offsetX:uint = 0;
+			var _offsetY:uint = 0;
+			if (distanceFromCenter < 31 && alive)
+			{
+				_offsetX = map.radarPos.x + posX - lens.lensRect.x;
+				_offsetY = map.radarPos.y + posY - lens.lensRect.y;
+				FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
+			}
 			if (magnified)
 			{
 				x = posX;
@@ -265,24 +304,11 @@ package
 				posX = x;
 				posY = y;
 			}
-			else if (alive)
+			else if (distanceFromCenter >= 33 && alive)
 			{
-				var _distance:Number = distanceFromCenter();
-				
-				var _offsetX:uint = 0;
-				var _offsetY:uint = 0;
-				if (_distance < 31)
-				{
-					_offsetX = map.radarPos.x + posX - lens.lensRect.x;
-					_offsetY = map.radarPos.y + posY - lens.lensRect.y;
-					FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
-				}
-				else if (_distance >= 33)
-				{
-					_offsetX = map.posX + posX;
-					_offsetY = map.posY + posY;
-					FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
-				}
+				_offsetX = map.posX + posX;
+				_offsetY = map.posY + posY;
+				FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
 			}
 		}
 	}
