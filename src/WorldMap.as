@@ -37,7 +37,7 @@ package
 			heightInTiles = tiles.height;
 			worldRect = new FlxRect(64, 64, 112, 112);
 			instructionPos = new FlxPoint(48, 64);
-			radarPos = new FlxPoint(174, 0);
+			radarPos = new FlxPoint(176, 2);
 		}
 		
 		protected function getMapTile(X:int, Y:int):void
@@ -93,8 +93,8 @@ package
 						if (_magnified)
 						{
 							getMapTile(x, y);
-							_flashPoint.x = lens.lensRect.x + MagnifyingGlass.ZOOM * (x - _view.x);
-							_flashPoint.y = lens.lensRect.y + MagnifyingGlass.ZOOM * (y - _view.y);
+							_flashPoint.x = lens.lensRect.x + lens.magnifyOffset.x + MagnifyingGlass.ZOOM * (x - _view.x);
+							_flashPoint.y = lens.lensRect.y + lens.magnifyOffset.y + MagnifyingGlass.ZOOM * (y - _view.y);
 							_flashPointZero.setTo(_flashPoint.x - lens.posX, _flashPoint.y - lens.posY);
 							FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
 						}

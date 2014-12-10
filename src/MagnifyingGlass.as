@@ -10,7 +10,7 @@ package
 		[Embed(source="../assets/images/MagnifyingGlass.png")] protected var imgMagnifyingGlass:Class;
 		[Embed(source="../assets/images/LensMask.png")] protected var imgLensMask:Class;
 		
-		public static const ZOOM:int = 8;
+		public static const ZOOM:Number = 8;
 		
 		public static const SPELL_BLESS:uint = 0;
 		public static const SPELL_SMITE:uint = 1;
@@ -27,12 +27,16 @@ package
 		public var mapRect:Rectangle;
 		public var lensRect:Rectangle;
 		public var lensMask:BitmapData;
+		public var magnifyOffset:FlxPoint;
+		public var currentPos:FlxPoint;
 		
 		public var blessInfo:FlxText;
 		public var smiteInfo:FlxText;
 		
-		public var fillHeightA:Number;
-		public var fillHeightB:Number;
+		protected var fillHeightA:Number;
+		protected var fillHeightB:Number;
+		protected var targetPos:FlxPoint;
+		protected var targetVelocity:FlxPoint;
 		
 		public function MagnifyingGlass(Map:WorldMap = null)
 		{
@@ -40,8 +44,8 @@ package
 			
 			loadGraphic(imgMagnifyingGlass, true, false, 86, 120);
 			lensMask = FlxG.addBitmap(imgLensMask);
-			mapRect = new Rectangle(0, 0, 8, 8);
-			lensRect = new Rectangle(0, 0, 128, 128);
+			mapRect = new Rectangle(0, 0, 10, 10);
+			lensRect = new Rectangle(0, 0, 64, 64);
 			blessInfo = new FlxText(0, 0, 128, "");
 			blessInfo.alignment = "left";
 			smiteInfo = new FlxText(0, 0, 128, "");
@@ -52,6 +56,54 @@ package
 				map = Map;
 				map.lens = this;
 			}
+			
+			currentPos = new FlxPoint(ZOOM * FlxG.mouse.x, ZOOM * FlxG.mouse.y);
+			targetPos = new FlxPoint();
+			targetVelocity = new FlxPoint();
+			magnifyOffset = new FlxPoint();
+			
+			FlxG.watch(this, "posX");
+			FlxG.watch(magnifyOffset, "x");
+			FlxG.watch(this, "posY");
+			FlxG.watch(magnifyOffset, "y");
+		}
+		
+		private function updateTarget(Mass:Number, Stiffness:Number, Damping:Number):void
+		{
+			targetPos.x = ZOOM * FlxG.mouse.x;
+			targetPos.y = ZOOM * FlxG.mouse.y;
+			
+			var _diffX:Number = Math.abs(currentPos.x - targetPos.x);
+			var _diffY:Number = Math.abs(currentPos.y - targetPos.y);
+			if ((_diffX < 0.5 && _diffY < 0.5))
+			{
+				currentPos.x = targetPos.x;
+				currentPos.y = targetPos.y;
+			}
+			
+			var _force:Number = (targetPos.x - currentPos.x) * Stiffness;
+			var _factor:Number = _force / Mass;
+			targetVelocity.x = Damping * (targetVelocity.x + _factor);
+			currentPos.x += targetVelocity.x;
+			
+			_force = (targetPos.y - currentPos.y) * Stiffness;
+			_factor = _force / Mass;
+			targetVelocity.y = Damping * (targetVelocity.y + _factor);
+			currentPos.y += targetVelocity.y;
+			
+			posX = Math.floor(currentPos.x / ZOOM);
+			magnifyOffset.x = posX * ZOOM - currentPos.x;
+			posY = Math.floor(currentPos.y / ZOOM);
+			magnifyOffset.y = posY * ZOOM - currentPos.y;
+			
+			if (map)
+			{
+				mapRect.x = posX - 0.5 * mapRect.width - map.posX;
+				mapRect.y = posY - 0.5 * mapRect.height - map.posY;
+			}
+			
+			posX -= 34;
+			posY -= 34;
 		}
 		
 		override public function preUpdate():void
@@ -66,14 +118,7 @@ package
 		{	
 			super.update();
 			
-			posX = FlxG.mouse.x - 34;
-			posY = FlxG.mouse.y - 34;
-			
-			if (map)
-			{
-				mapRect.x = FlxG.mouse.x - 0.5 * mapRect.width - map.posX;
-				mapRect.y = FlxG.mouse.y - 0.5 * mapRect.height - map.posY;
-			}
+			updateTarget(3.0, 0.4, 0.4);
 			
 			lensRect.x = posX + 2;
 			lensRect.y = posY + 2;

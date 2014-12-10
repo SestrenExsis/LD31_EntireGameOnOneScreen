@@ -9,6 +9,7 @@ package
 		public function LD31_EntireGameOnOneScreen()
 		{
 			super(240, 240, GameScreen, 2.0, 60, 60, false);
+			forceDebugger = true;
 		}
 	}
 }

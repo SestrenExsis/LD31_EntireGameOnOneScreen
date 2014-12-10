@@ -242,10 +242,16 @@ package
 			kill();
 		}
 		
-		public function getDistanceFromCenter():Number
+		public function getDistanceFromCenter(ZoomedOut:Boolean = true):Number
 		{
-			var dx:Number = FlxG.mouse.x - posX;
-			var dy:Number = FlxG.mouse.y - posY;
+			var dx:Number = lens.currentPos.x - (MagnifyingGlass.ZOOM * posX - _offsetRemaining.x);
+			var dy:Number = lens.currentPos.y - (MagnifyingGlass.ZOOM * posY - _offsetRemaining.y);
+			
+			if (ZoomedOut)
+			{
+				dx /= MagnifyingGlass.ZOOM;
+				dy /= MagnifyingGlass.ZOOM;
+			}
 			return Math.sqrt(dx * dx + dy * dy);
 		}
 		
@@ -266,12 +272,6 @@ package
 		
 		override public function draw():void
 		{
-			var x:Number = posX + _offsetRemaining.x / FRAME_WIDTH;
-			var y:Number = posY + _offsetRemaining.y / FRAME_WIDTH;
-			var _view:Rectangle = lens.mapRect;
-			var _corner:Boolean = ((x == _view.left || x == _view.right - 1) && (y == _view.top || y == _view.bottom - 1));
-			magnified = !_corner && _view.left <= x && _view.right >= x && _view.top - 1 < y && _view.bottom >= y;
-			
 			var _offsetX:uint = 0;
 			var _offsetY:uint = 0;
 			if (distanceFromCenter < 31 && alive)
@@ -280,6 +280,17 @@ package
 				_offsetY = map.radarPos.y + posY - lens.lensRect.y;
 				FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
 			}
+			else if (distanceFromCenter >= 33 && alive)
+			{
+				_offsetX = map.posX + posX;
+				_offsetY = map.posY + posY;
+				FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
+			}
+			
+			var x:Number = posX + _offsetRemaining.x / FRAME_WIDTH;
+			var y:Number = posY + _offsetRemaining.y / FRAME_WIDTH;
+			var _view:Rectangle = lens.mapRect;
+			magnified = _view.left <= x && (_view.right + 1 >= x) && (_view.top - 1 < y) && (_view.bottom + 1 >= y);
 			if (magnified)
 			{
 				x = posX;
@@ -291,8 +302,8 @@ package
 				if(dirty)
 					calcFrame();
 				
-				_flashPoint.x = posX + _offsetRemaining.x;
-				_flashPoint.y = posY + _offsetRemaining.y - FRAME_OFFSET;
+				_flashPoint.x = posX + lens.magnifyOffset.x + _offsetRemaining.x;
+				_flashPoint.y = posY + lens.magnifyOffset.y + _offsetRemaining.y - FRAME_OFFSET;
 				
 				_flashPointZero.setTo(_flashPoint.x - lens.posX, _flashPoint.y - lens.posY);
 				FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, lens.lensMask, _flashPointZero, true);
@@ -303,12 +314,6 @@ package
 				
 				posX = x;
 				posY = y;
-			}
-			else if (distanceFromCenter >= 33 && alive)
-			{
-				_offsetX = map.posX + posX;
-				_offsetY = map.posY + posY;
-				FlxG.camera.buffer.setPixel(_offsetX, _offsetY, color);
 			}
 		}
 	}
