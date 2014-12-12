@@ -1,27 +1,13 @@
 package
 {
-	import flash.geom.Rectangle;
-	
 	import org.flixel.*;
 		
 	public class GameScreen extends ScreenState
 	{
 		[Embed(source="../assets/images/GameScreen.png")] protected var imgGameScreen:Class;
 		
-		public static const MODE_INSTRUCTIONS:int = 0;
-		public static const MODE_PLAY:int = 1;
-		public static const MODE_WIN:int = 2;
-		public static const MODE_LOSE:int = 3;
-		
-		public static var LOSS_TRIGGERED:Boolean = false;
-		
-		protected var _gameMode:int = -1;
-		
-		public static const DIFFICULTY_TEXT:String = "Difficulty: ";
-		public static const INSTRUCTION_TEXT:String = 
-			" Press 1-5 to change the difficulty.\nClick on the instructions next to\n the board to begin playing.";
-		public static const WIN_TEXT:String = "You win!\nThank you for playing.\nClick on the instructions to play again.";
-		public static const LOSE_TEXT:String = "An enemy unit escaped! You lose!\nClick on the instructions to try again.";
+		public static const TURN_DURATION:Number = 1.0;
+		public static const MAX_ENEMIES_PER_LANE:uint = 10;
 		
 		protected var background:FlxSprite;
 		protected var worldmap:WorldMap;
@@ -31,14 +17,6 @@ package
 		protected var actionTimer:FlxTimer;
 		protected var currentTeam:int = Entity.RED_TEAM;
 		protected var lanes:Vector.<Vector.<Entity>>;
-		protected var infoText:FlxText;
-		protected var difficultyText:FlxText;
-		protected var clickRect:Rectangle;
-		
-		public var turnDuration:Number = 2.0;
-		public var probabilityOfRed:Number = 0.2;
-		public var maxRedPerLane:Number = 5;
-		public var probabilityOfBlue:Number = 0.9;
 		
 		public function GameScreen()
 		{
@@ -49,18 +27,15 @@ package
 		{
 			super.create();
 			
-			FlxG.level = 2;
 			FlxG.mouse.hide();
-			clickRect = new Rectangle(48, 64, 16, 20);
-			actionTimer = new FlxTimer();
 			
 			background = new FlxSprite();
 			background.loadGraphic(imgGameScreen);
 			
 			worldmap = new WorldMap();
-			
 			lens = new MagnifyingGlass(worldmap);
 			
+<<<<<<< HEAD
 			infoText = new FlxText(0, 0.75 * FlxG.height, FlxG.width, INSTRUCTION_TEXT);
 			infoText.setFormat(null, 8, 0xffffff, "center", 0x000000);
 			
@@ -99,16 +74,17 @@ package
 			lens.blessCharge = 0;
 			lens.blessLevel = 0;
 			
+=======
+>>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 			var _entity:Entity;
 			redTeam = new FlxGroup(1000);
-			redTeam.ID = 2;
 			blueTeam = new FlxGroup(1000);
-			blueTeam.ID = 3;
 			
 			//shuffle up the lanes
 			var x:int;
 			var lane:Vector.<Entity>;
 			lanes = new Vector.<Vector.<Entity>>(worldmap.widthInTiles);
+			var _probability:Number = 0.7;
 			var _redCount:uint;
 			var _success:Boolean;
 			for (x = worldmap.worldRect.left; x < worldmap.worldRect.right; x++)
@@ -116,20 +92,24 @@ package
 				_redCount = 0;
 				_success = true;
 				do {
-					if (FlxG.random() < (probabilityOfRed + 0.1 * FlxG.level))
+					if (FlxG.random() < _probability)
 						_redCount++;
 					else
 						_success = false;
-				} while (_redCount < (maxRedPerLane + FlxG.level) && _success)
+				} while (_redCount < MAX_ENEMIES_PER_LANE && _success)
 				
 				lane = new Vector.<Entity>();
 				fillLane(lane, x, _redCount);
 				lanes[x] = lane;
 			}
 			
+			add(background);
+			add(worldmap);
 			add(redTeam);
 			add(blueTeam);
+			add(lens);
 			
+<<<<<<< HEAD
 			sort("ID");
 		}
 		
@@ -173,14 +153,18 @@ package
 				infoText.visible = true;
 				actionTimer.stop();
 			}
+=======
+			actionTimer = new FlxTimer();
+			actionTimer.start(TURN_DURATION, 1, updateActions);
+>>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 		}
 		
-		protected function fillLane(Lane:Vector.<Entity>, LaneIndex:uint, RedCount:uint = 4):uint
+		protected function fillLane(Lane:Vector.<Entity>, LaneIndex:uint, RedCount:uint = 4, BluePercent:Number = 0.8):uint
 		{
 			var _blueCount:uint = 0;
 			for (var r:int = 0; r < RedCount; r++)
 			{
-				if (FlxG.random() < (probabilityOfBlue - 0.05 * FlxG.level))
+				if (FlxG.random() < BluePercent)
 					_blueCount++;
 			}
 			
@@ -211,11 +195,7 @@ package
 		public function updateActions(Timer:FlxTimer):void
 		{
 			actionTimer.stop();
-			
-			if (FlxG.paused)
-				return;
-			
-			actionTimer.start(turnDuration - 0.2 * FlxG.level, 1, updateActions);
+			actionTimer.start(TURN_DURATION, 1, updateActions);
 			
 			var i:int;
 			if (currentTeam == Entity.RED_TEAM)
@@ -289,8 +269,8 @@ package
 			var _lane:Vector.<Entity>;
 			var _entity:Entity;
 			var _array:Array = new Array();
-			var _left:uint = Math.max(lens.mapRect.left, worldmap.worldRect.left);
-			var _right:uint = Math.min(lens.mapRect.right, worldmap.worldRect.right);
+			var _left:uint = Math.max(lens.mapRect.left, 0);
+			var _right:uint = Math.min(lens.mapRect.right, worldmap.widthInTiles - 1);
 			var _distance:Number;
 			for (i = _left; i < _right; i++)
 			{
@@ -298,7 +278,7 @@ package
 				for (var j:int = 0; j < _lane.length; j++)
 				{
 					_entity = _lane[j];
-					_distance = _entity.distanceFromCenter;
+					_distance = _entity.distanceFromCenter();
 					if (_distance < 31 && _entity.magnified && _entity.alive && _entity.exists)
 					{
 						if ((Reds && _entity.team == Entity.RED_TEAM) || (Blues && _entity.team == Entity.BLUE_TEAM))
@@ -316,6 +296,7 @@ package
 		
 		override public function update():void
 		{	
+<<<<<<< HEAD
 			if (FlxG.keys.justPressed("L"))
 				Entity.currentEntity++;
 			else if (FlxG.keys.justPressed("K"))
@@ -353,23 +334,9 @@ package
 				}
 			}
 			
+=======
+>>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 			super.update();
-			
-			if (FlxG.paused)
-				return;
-			
-			lens.blessCharge += FlxG.elapsed * Math.max(0, (1 - 0.2 * lens.blessLevel));
-			if (lens.blessCharge > (MagnifyingGlass.BLESS_COOLDOWN - 0.1 * FlxG.level))
-			{
-				lens.blessCharge -= MagnifyingGlass.BLESS_COOLDOWN - 0.1 * FlxG.level;
-				lens.blessLevel++;
-			}
-			lens.smiteCharge += FlxG.elapsed * Math.max(0, (1 - 0.2 * lens.smiteLevel))
-			if (lens.smiteCharge > MagnifyingGlass.SMITE_COOLDOWN - 0.1 * FlxG.level)
-			{
-				lens.smiteCharge -= MagnifyingGlass.SMITE_COOLDOWN - 0.1 * FlxG.level;
-				lens.smiteLevel++;
-			}
 			
 			if (FlxG.mouse.justPressed())
 			{
@@ -382,6 +349,7 @@ package
 						if (_randomEntity)
 						{
 							_randomEntity.bless();
+							lens.blessCharge -= MagnifyingGlass.BLESS_COOLDOWN;
 							lens.blessLevel--;
 						}
 					}
@@ -394,6 +362,7 @@ package
 						if (_randomEntity)
 						{
 							_randomEntity.smite();
+							lens.smiteCharge -= MagnifyingGlass.SMITE_COOLDOWN;
 							lens.smiteLevel--;
 						}
 					}
