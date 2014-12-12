@@ -37,6 +37,9 @@ package
 		protected var timer:FlxTimer;
 		protected var blessTimer:FlxTimer;
 		
+		public static var currentEntity:int = 0;
+		public static var selectedEntityDistance:Number = 0;
+		
 		public function Entity(Map:WorldMap, Lens:MagnifyingGlass, X:int, Y:int, Team:int)
 		{
 			super(X, Y);
@@ -82,6 +85,8 @@ package
 			
 			team = Team;
 			distanceFromCenter = getDistanceFromCenter();
+			
+			ID = Entity.redCount + Entity.blueCount;
 			
 			if (team == RED_TEAM)
 				Entity.redCount++;
@@ -268,6 +273,9 @@ package
 				_offsetRemaining.y += (_offsetRemaining.y < 0) ? 1 : -1;
 			
 			distanceFromCenter = getDistanceFromCenter();
+			
+			if (ID == currentEntity)
+				selectedEntityDistance = distanceFromCenter;
 		}
 		
 		override public function draw():void

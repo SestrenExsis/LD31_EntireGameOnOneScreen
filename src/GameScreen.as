@@ -81,6 +81,8 @@ package
 			
 			FlxG.paused = true;
 			gameMode = MODE_INSTRUCTIONS;
+			
+			FlxG.watch(Entity, "selectedEntityDistance");
 		}
 		
 		protected function startGame():void
@@ -155,7 +157,7 @@ package
 				FlxG.paused = false;
 				infoText.visible = false;
 				actionTimer.stop();
-				actionTimer.start(turnDuration - 0.2 * FlxG.level, 1, updateActions);
+				//actionTimer.start(turnDuration - 0.2 * FlxG.level, 1, updateActions);
 			}
 			else if (Value == MODE_WIN)
 			{
@@ -314,6 +316,11 @@ package
 		
 		override public function update():void
 		{	
+			if (FlxG.keys.justPressed("L"))
+				Entity.currentEntity++;
+			else if (FlxG.keys.justPressed("K"))
+				Entity.currentEntity--;
+			
 			if (gameMode == MODE_PLAY)
 			{
 				if (Entity.redCount == 0)
