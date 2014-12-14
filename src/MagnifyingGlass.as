@@ -4,7 +4,7 @@ package
 	import flash.geom.Rectangle;
 	
 	import org.flixel.*;
-		
+	
 	public class MagnifyingGlass extends FlxSprite
 	{
 		[Embed(source="../assets/images/MagnifyingGlass.png")] protected var imgMagnifyingGlass:Class;
@@ -15,12 +15,12 @@ package
 		public static const SPELL_BLESS:uint = 0;
 		public static const SPELL_SMITE:uint = 1;
 		
-		public static const BLESS_COOLDOWN:Number = 4;
-		public static const SMITE_COOLDOWN:Number = 4;
+		public static const BLESS_COOLDOWN:Number = 1.5;
+		public static const SMITE_COOLDOWN:Number = 1.5;
 		
-		public var blessLevel:uint = 0;
+		public var blessLevel:Number = 0;
 		public var blessCharge:Number = 0;
-		public var smiteLevel:uint = 0;
+		public var smiteLevel:Number = 0;
 		public var smiteCharge:Number = 0;
 		
 		public var map:WorldMap;
@@ -33,14 +33,11 @@ package
 		public var blessInfo:FlxText;
 		public var smiteInfo:FlxText;
 		
-<<<<<<< HEAD
 		protected var fillHeightA:Number;
 		protected var fillHeightB:Number;
 		protected var targetPos:FlxPoint;
 		protected var targetVelocity:FlxPoint;
 		
-=======
->>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 		public function MagnifyingGlass(Map:WorldMap = null)
 		{
 			super(0, 0);
@@ -64,25 +61,12 @@ package
 			targetPos = new FlxPoint();
 			targetVelocity = new FlxPoint();
 			magnifyOffset = new FlxPoint();
-			
-			FlxG.watch(this, "posX");
-			FlxG.watch(magnifyOffset, "x");
-			FlxG.watch(this, "posY");
-			FlxG.watch(magnifyOffset, "y");
 		}
 		
 		private function updateTarget(Mass:Number, Stiffness:Number, Damping:Number):void
 		{
 			targetPos.x = ZOOM * FlxG.mouse.x;
 			targetPos.y = ZOOM * FlxG.mouse.y;
-			
-			var _diffX:Number = Math.abs(currentPos.x - targetPos.x);
-			var _diffY:Number = Math.abs(currentPos.y - targetPos.y);
-			if ((_diffX < 0.5 && _diffY < 0.5))
-			{
-				currentPos.x = targetPos.x;
-				currentPos.y = targetPos.y;
-			}
 			
 			var _force:Number = (targetPos.x - currentPos.x) * Stiffness;
 			var _factor:Number = _force / Mass;
@@ -113,13 +97,6 @@ package
 		{
 			super.preUpdate();
 			
-			blessCharge += FlxG.elapsed * Math.max(0, (1 - 0.1 * blessLevel));
-			if (blessCharge > BLESS_COOLDOWN * blessLevel)
-				blessLevel++;
-			smiteCharge += FlxG.elapsed * Math.max(0, (1 - 0.1 * smiteLevel))
-			if (smiteCharge > SMITE_COOLDOWN * smiteLevel)
-				smiteLevel++;
-			
 			if (FlxG.keys.justPressed("SPACE"))
 				frame = (frame == SPELL_BLESS) ? SPELL_SMITE : SPELL_BLESS;
 		}
@@ -138,15 +115,25 @@ package
 		{
 			super.draw();
 			
-			blessInfo.posX = 86 + posX;
+			blessInfo.posX = 89 + posX;
 			blessInfo.posY = 46 + posY;
 			blessInfo.text = blessLevel.toString();
 			blessInfo.draw();
 			
-			smiteInfo.posX = 86 + posX;
+			fillHeightA = Math.round(16 * (blessCharge / (BLESS_COOLDOWN - 0.1 * FlxG.level)));
+			_flashRect.setTo(posX + 87, posY + 46 + 16 - fillHeightA, 1, fillHeightA);
+			FlxG.camera.buffer.fillRect(_flashRect, 0xffffffff);
+			
+			smiteInfo.posX = 89 + posX;
 			smiteInfo.posY = 64 + posY;
 			smiteInfo.text = smiteLevel.toString();
 			smiteInfo.draw();
+			
+			fillHeightB = Math.round(16 * (smiteCharge / (SMITE_COOLDOWN - 0.1 * FlxG.level)));
+			_flashRect.setTo(posX + 87, posY + 64 + 16 - fillHeightB, 1, fillHeightB);
+			FlxG.camera.buffer.fillRect(_flashRect, 0xffffffff);
+			
+			_flashRect.setTo(0, 0, frameWidth, frameHeight);
 		}
 	}
 }

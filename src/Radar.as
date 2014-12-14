@@ -12,34 +12,70 @@ package
 		
 		public var radarMask:BitmapData;
 		public var focalPoint:FlxPoint;
+		public var redTeam:FlxGroup;
+		public var blueTeam:FlxGroup;
 		
 		protected var lens:MagnifyingGlass;
-		protected var entities:FlxGroup;
 		
-		public function Radar(Lens:MagnifyingGlass, Entities:FlxGroup)
+		public function Radar(PosX:Number, PosY:Number, Lens:MagnifyingGlass, RedTeam:FlxGroup = null, BlueTeam:FlxGroup = null)
 		{
-			super(0, 0);
+			super(PosX, PosY);
 			
 			loadGraphic(imgRadar);
 			radarMask = FlxG.addBitmap(imgRadarMask);
 			focalPoint = new FlxPoint();
 			
 			lens = Lens;
-			entities = Entities;
+			redTeam = RedTeam;
+			blueTeam = BlueTeam;
 		}
 		
 		public function renderEntities():void
 		{
-			if (entities)
+			var i:int;
+			var dx:Number;
+			var dy:Number;
+			var _distance:Number;
+			var _entity:Entity;
+			var x:int;
+			var y:int;
+			if (redTeam)
 			{
-				var dx:Number = focalPoint.x - posX;
-				var dy:Number = focalPoint.y - posY;
-				var _distance:Number = Math.sqrt(dx * dx + dy * dy);
-				var _entity:Entity;
-				for (var i:int = 0; i < entities.length; i++)
+				for (i = 0; i < redTeam.length; i++)
 				{
-					
-					if (_entity.
+					_entity = redTeam.members[i];
+					if (_entity.alive)
+					{
+						dx = _entity.posX - focalPoint.x;
+						dy = _entity.posY - focalPoint.y;
+						_distance = Math.sqrt(dx * dx + dy * dy);
+						if (_distance <= 0.5 * frameWidth)
+						{
+							x = 0.5 * frameWidth + (int)(dx);
+							y = 0.5 * frameHeight + (int)(dy);
+							framePixels.setPixel32(x, y, 255 << 24 | _entity.color);
+						}
+					}
+				}
+			}
+			
+			if (blueTeam)
+			{
+				for (i = 0; i < blueTeam.length; i++)
+				{
+					_entity = blueTeam.members[i];
+					if (_entity.alive)
+					{
+						dx = _entity.posX - focalPoint.x;
+						dy = _entity.posY - focalPoint.y;
+						_distance = Math.sqrt(dx * dx + dy * dy);
+						if (_distance <= 0.5 * frameWidth)
+						{
+							x = 0.5 * frameWidth + (int)(dx);
+							y = 0.5 * frameHeight + (int)(dy);
+							framePixels.setPixel32(x, y, 255 << 24 | _entity.color);
+						}
+					}
 				}
 			}
 		}
@@ -47,6 +83,8 @@ package
 		override public function update():void
 		{	
 			super.update();
+			
+			focalPoint.make(Math.floor(lens.currentPos.x / 8) - 1, Math.floor(lens.currentPos.y / 8) - 1);
 		}
 		
 		override public function draw():void
@@ -58,34 +96,29 @@ package
 					return;
 			}
 			
-			if(dirty)	//rarely 
-				calcFrame();
+			if(!onScreen(FlxG.camera))
+				return;
 			
-			if(cameras == null)
-				cameras = FlxG.cameras;
-			var camera:FlxCamera;
-			var i:uint = 0;
-			var l:uint = cameras.length;
-			while(i < l)
-			{
-				camera = cameras[i++];
-				if(!onScreen(camera))
-					continue;
-				_intersect.x = posX - int(camera.scroll.x*scrollFactor.x) - offset.x;
-				_intersect.y = posY - int(camera.scroll.y*scrollFactor.y) - offset.y;
-				_intersect.x += (_intersect.x > 0)?0.0000001:-0.0000001;
-				_intersect.y += (_intersect.y > 0)?0.0000001:-0.0000001;
-				
-				_flashPoint.x = _intersect.x;
-				_flashPoint.y = _intersect.y;
-				
-				camera.buffer.copyPixels(pixels, _flashRect, _flashPoint, null, null, true); // Draw the radar backdrop
-				camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, radarMask, _flashPointZero, true); // Draw the dots
-				
-				if(FlxG.visualDebug && !ignoreDrawDebug)
-					drawDebug(camera);
-			}
-			framePixels.fillRect(_flashRect, 0x00000000); // Clear all the dots
+			_intersect.x = posX - int(FlxG.camera.scroll.x * scrollFactor.x) - offset.x;
+			_intersect.y = posY - int(FlxG.camera.scroll.y * scrollFactor.y) - offset.y;
+			_intersect.x += (_intersect.x > 0)?0.0000001:-0.0000001;
+			_intersect.y += (_intersect.y > 0)?0.0000001:-0.0000001;
+			
+			_flashPoint.x = _intersect.x;
+			_flashPoint.y = _intersect.y;
+			
+			// Draw the radar backdrop
+			FlxG.camera.buffer.copyPixels(pixels, _flashRect, _flashPoint, null, null, true);
+			
+			// Draw the dots
+			renderEntities();
+			FlxG.camera.buffer.copyPixels(framePixels, _flashRect, _flashPoint, radarMask, _flashPointZero, true);
+			
+			if(FlxG.visualDebug && !ignoreDrawDebug)
+				drawDebug(FlxG.camera);
+			
+			// Clear all the dots
+			framePixels.fillRect(_flashRect, 0x00000000);
 		}
 	}
 }

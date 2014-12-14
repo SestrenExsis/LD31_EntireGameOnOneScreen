@@ -1,22 +1,47 @@
 package
 {
+	import flash.geom.Rectangle;
+	
 	import org.flixel.*;
-		
+	
 	public class GameScreen extends ScreenState
 	{
 		[Embed(source="../assets/images/GameScreen.png")] protected var imgGameScreen:Class;
+		[Embed(source="../assets/images/TinyLens.png")] protected var imgTinyLens:Class;
 		
-		public static const TURN_DURATION:Number = 1.0;
-		public static const MAX_ENEMIES_PER_LANE:uint = 10;
+		public static const MODE_INSTRUCTIONS:int = 0;
+		public static const MODE_PLAY:int = 1;
+		public static const MODE_WIN:int = 2;
+		public static const MODE_LOSE:int = 3;
+		
+		public static var LOSS_TRIGGERED:Boolean = false;
+		
+		protected var _gameMode:int = -1;
+		
+		public static const DIFFICULTY_TEXT:String = "Difficulty: ";
+		public static const INSTRUCTION_TEXT:String = 
+			" Press 1-5 to change the difficulty.\n Click on the instructions when you have\nthe magnifying lens to begin playing.";
+		public static const WIN_TEXT:String = "You win!\nThank you for playing.\nClick on the instructions to play again.";
+		public static const LOSE_TEXT:String = "An enemy unit escaped! You lose!\nClick on the instructions to try again.";
 		
 		protected var background:FlxSprite;
 		protected var worldmap:WorldMap;
+		protected var tinyLens:FlxSprite;
 		protected var redTeam:FlxGroup;
 		protected var blueTeam:FlxGroup;
 		protected var lens:MagnifyingGlass;
+		protected var radar:Radar;
 		protected var actionTimer:FlxTimer;
 		protected var currentTeam:int = Entity.RED_TEAM;
 		protected var lanes:Vector.<Vector.<Entity>>;
+		protected var infoText:FlxText;
+		protected var difficultyText:FlxText;
+		protected var clickRect:Rectangle;
+		
+		public var turnDuration:Number = 2.0;
+		public var probabilityOfRed:Number = 0.2;
+		public var maxRedPerLane:Number = 5;
+		public var probabilityOfBlue:Number = 0.9;
 		
 		public function GameScreen()
 		{
@@ -26,16 +51,24 @@ package
 		override public function create():void
 		{
 			super.create();
+			FlxG.mouse.show();
+			FlxG.level = 2;
+			clickRect = new Rectangle(48, 64, 16, 20);
+			actionTimer = new FlxTimer();
 			
-			FlxG.mouse.hide();
+			worldmap = new WorldMap();
 			
 			background = new FlxSprite();
 			background.loadGraphic(imgGameScreen);
 			
-			worldmap = new WorldMap();
-			lens = new MagnifyingGlass(worldmap);
+			var x:Number = worldmap.worldRect.left + Math.floor(FlxG.random() * 0.25 * worldmap.width);
+			var y:Number = worldmap.worldRect.top + Math.floor(FlxG.random() * 0.25 * worldmap.height);
+			tinyLens = new FlxSprite(x, y);
+			tinyLens.loadGraphic(imgTinyLens);
 			
-<<<<<<< HEAD
+			lens = new MagnifyingGlass(worldmap);
+			radar = new Radar(174, 0, lens);
+			
 			infoText = new FlxText(0, 0.75 * FlxG.height, FlxG.width, INSTRUCTION_TEXT);
 			infoText.setFormat(null, 8, 0xffffff, "center", 0x000000);
 			
@@ -44,24 +77,35 @@ package
 			
 			add(background);
 			add(worldmap);
-			add(lens);
+			add(tinyLens);
+			add(radar);
 			add(infoText);
 			add(difficultyText);
 			
 			background.ID = 0;
 			worldmap.ID = 1;
-			lens.ID = 4;
-			infoText.ID = 5;
-			difficultyText.ID = 6;
+			radar.ID = 4;
+			tinyLens.ID = 4;
+			lens.ID = 5;
+			infoText.ID = 6;
+			difficultyText.ID = 7;
 			
 			FlxG.paused = true;
 			gameMode = MODE_INSTRUCTIONS;
-			
-			FlxG.watch(Entity, "selectedEntityDistance");
+		}
+		
+		protected function pickUpLens():void
+		{
+			tinyLens.kill();
+			remove(tinyLens);
+			add(lens);
+			FlxG.mouse.hide();
 		}
 		
 		protected function startGame():void
 		{
+			if (radar)
+				remove(radar);
 			if (redTeam)
 				remove(redTeam);
 			if (blueTeam)
@@ -74,17 +118,16 @@ package
 			lens.blessCharge = 0;
 			lens.blessLevel = 0;
 			
-=======
->>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 			var _entity:Entity;
 			redTeam = new FlxGroup(1000);
+			redTeam.ID = 2;
 			blueTeam = new FlxGroup(1000);
+			blueTeam.ID = 3;
 			
 			//shuffle up the lanes
 			var x:int;
 			var lane:Vector.<Entity>;
 			lanes = new Vector.<Vector.<Entity>>(worldmap.widthInTiles);
-			var _probability:Number = 0.7;
 			var _redCount:uint;
 			var _success:Boolean;
 			for (x = worldmap.worldRect.left; x < worldmap.worldRect.right; x++)
@@ -92,24 +135,24 @@ package
 				_redCount = 0;
 				_success = true;
 				do {
-					if (FlxG.random() < _probability)
+					if (FlxG.random() < (probabilityOfRed + 0.1 * FlxG.level))
 						_redCount++;
 					else
 						_success = false;
-				} while (_redCount < MAX_ENEMIES_PER_LANE && _success)
+				} while (_redCount < (maxRedPerLane + FlxG.level) && _success)
 				
 				lane = new Vector.<Entity>();
 				fillLane(lane, x, _redCount);
 				lanes[x] = lane;
 			}
 			
-			add(background);
-			add(worldmap);
 			add(redTeam);
 			add(blueTeam);
-			add(lens);
 			
-<<<<<<< HEAD
+			radar = new Radar(174, 0, lens, redTeam, blueTeam);
+			radar.ID = 4;
+			add(radar);
+			
 			sort("ID");
 		}
 		
@@ -153,18 +196,14 @@ package
 				infoText.visible = true;
 				actionTimer.stop();
 			}
-=======
-			actionTimer = new FlxTimer();
-			actionTimer.start(TURN_DURATION, 1, updateActions);
->>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 		}
 		
-		protected function fillLane(Lane:Vector.<Entity>, LaneIndex:uint, RedCount:uint = 4, BluePercent:Number = 0.8):uint
+		protected function fillLane(Lane:Vector.<Entity>, LaneIndex:uint, RedCount:uint = 4):uint
 		{
 			var _blueCount:uint = 0;
 			for (var r:int = 0; r < RedCount; r++)
 			{
-				if (FlxG.random() < BluePercent)
+				if (FlxG.random() < (probabilityOfBlue - 0.05 * FlxG.level))
 					_blueCount++;
 			}
 			
@@ -195,7 +234,11 @@ package
 		public function updateActions(Timer:FlxTimer):void
 		{
 			actionTimer.stop();
-			actionTimer.start(TURN_DURATION, 1, updateActions);
+			
+			if (FlxG.paused)
+				return;
+			
+			actionTimer.start(turnDuration - 0.2 * FlxG.level, 1, updateActions);
 			
 			var i:int;
 			if (currentTeam == Entity.RED_TEAM)
@@ -269,8 +312,8 @@ package
 			var _lane:Vector.<Entity>;
 			var _entity:Entity;
 			var _array:Array = new Array();
-			var _left:uint = Math.max(lens.mapRect.left, 0);
-			var _right:uint = Math.min(lens.mapRect.right, worldmap.widthInTiles - 1);
+			var _left:uint = Math.max(lens.mapRect.left, worldmap.worldRect.left);
+			var _right:uint = Math.min(lens.mapRect.right, worldmap.worldRect.right);
 			var _distance:Number;
 			for (i = _left; i < _right; i++)
 			{
@@ -278,7 +321,7 @@ package
 				for (var j:int = 0; j < _lane.length; j++)
 				{
 					_entity = _lane[j];
-					_distance = _entity.distanceFromCenter();
+					_distance = _entity.distanceFromCenter;
 					if (_distance < 31 && _entity.magnified && _entity.alive && _entity.exists)
 					{
 						if ((Reds && _entity.team == Entity.RED_TEAM) || (Blues && _entity.team == Entity.BLUE_TEAM))
@@ -295,48 +338,57 @@ package
 		}
 		
 		override public function update():void
-		{	
-<<<<<<< HEAD
-			if (FlxG.keys.justPressed("L"))
-				Entity.currentEntity++;
-			else if (FlxG.keys.justPressed("K"))
-				Entity.currentEntity--;
-			
+		{
 			if (gameMode == MODE_PLAY)
 			{
 				if (Entity.redCount == 0)
-				{ //Win
 					gameMode = MODE_WIN;
-				}
 				else if (LOSS_TRIGGERED)
-				{ //Lose
 					gameMode = MODE_LOSE;
-				}
 			}
 			else
 			{
-				if (FlxG.mouse.justPressed() && clickRect.contains(FlxG.mouse.x, FlxG.mouse.y))
-					gameMode = MODE_PLAY;
-				else
+				if (FlxG.keys.justPressed("ONE") || FlxG.keys.justPressed("NUMPADONE"))
+					FlxG.level = 0;
+				else if (FlxG.keys.justPressed("TWO") || FlxG.keys.justPressed("NUMPADTWO"))
+					FlxG.level = 1;
+				else if (FlxG.keys.justPressed("THREE") || FlxG.keys.justPressed("NUMPADTHREE"))
+					FlxG.level = 2;
+				else if (FlxG.keys.justPressed("FOUR") || FlxG.keys.justPressed("NUMPADFOUR"))
+					FlxG.level = 3;
+				else if (FlxG.keys.justPressed("FIVE") || FlxG.keys.justPressed("NUMPADFIVE"))
+					FlxG.level = 4;
+				difficultyText.text = DIFFICULTY_TEXT + (FlxG.level + 1).toString();
+				
+				if (FlxG.mouse.justPressed())
 				{
-					if (FlxG.keys.justPressed("ONE") || FlxG.keys.justPressed("NUMPADONE"))
-						FlxG.level = 0;
-					else if (FlxG.keys.justPressed("TWO") || FlxG.keys.justPressed("NUMPADTWO"))
-						FlxG.level = 1;
-					else if (FlxG.keys.justPressed("THREE") || FlxG.keys.justPressed("NUMPADTHREE"))
-						FlxG.level = 2;
-					else if (FlxG.keys.justPressed("FOUR") || FlxG.keys.justPressed("NUMPADFOUR"))
-						FlxG.level = 3;
-					else if (FlxG.keys.justPressed("FIVE") || FlxG.keys.justPressed("NUMPADFIVE"))
-						FlxG.level = 4;
-					
-					difficultyText.text = DIFFICULTY_TEXT + (FlxG.level + 1).toString();
+					if (tinyLens.alive)
+					{
+						if (tinyLens.overlapsPoint(FlxG.mouse))
+							pickUpLens();
+					}
+					else if (clickRect.contains(FlxG.mouse.x, FlxG.mouse.y))
+						gameMode = MODE_PLAY;
 				}
 			}
 			
-=======
->>>>>>> parent of 2a3473e... Last commit for competition version, hopefully.
 			super.update();
+			
+			if (FlxG.paused)
+				return;
+			
+			lens.blessCharge += FlxG.elapsed * Math.max(0, (1 - 0.2 * lens.blessLevel));
+			if (lens.blessCharge > (MagnifyingGlass.BLESS_COOLDOWN - 0.1 * FlxG.level))
+			{
+				lens.blessCharge -= MagnifyingGlass.BLESS_COOLDOWN - 0.1 * FlxG.level;
+				lens.blessLevel++;
+			}
+			lens.smiteCharge += FlxG.elapsed * Math.max(0, (1 - 0.2 * lens.smiteLevel))
+			if (lens.smiteCharge > MagnifyingGlass.SMITE_COOLDOWN - 0.1 * FlxG.level)
+			{
+				lens.smiteCharge -= MagnifyingGlass.SMITE_COOLDOWN - 0.1 * FlxG.level;
+				lens.smiteLevel++;
+			}
 			
 			if (FlxG.mouse.justPressed())
 			{
@@ -349,7 +401,6 @@ package
 						if (_randomEntity)
 						{
 							_randomEntity.bless();
-							lens.blessCharge -= MagnifyingGlass.BLESS_COOLDOWN;
 							lens.blessLevel--;
 						}
 					}
@@ -362,7 +413,6 @@ package
 						if (_randomEntity)
 						{
 							_randomEntity.smite();
-							lens.smiteCharge -= MagnifyingGlass.SMITE_COOLDOWN;
 							lens.smiteLevel--;
 						}
 					}
